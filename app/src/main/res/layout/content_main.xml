@@ -1,9 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- A RecyclerView with some commonly used attributes -->
-<androidx.recyclerview.widget.RecyclerView android:id="@+id/main_recycler"
+<androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main_pull"
+    android:layout_height="wrap_content"
     android:scrollbars="vertical"
     app:layout_behavior = "@string/appbar_scrolling_view_behavior"
+
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto" />
+>
+
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/main_recycler"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/colorBgLight">
+
+    </androidx.recyclerview.widget.RecyclerView>
+
+</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+

@@ -21,6 +21,11 @@ public interface IApi{
     @GET("main/")
     Call<List<PostBrief>> mainPostsList(@Query("from") int from, @Query("to") int to);
 
+    @GET("mainmin/")
+    Call<List<PostBrief>> mainPostsMinCount(@Query("minid") int minId, @Query("count") int count);
+
+    @GET("mainrefresh/")
+    Call<List<PostBrief>> mainPostRefresh(@Query("maxid") int maxId);
 
 
 }

@@ -19,4 +19,10 @@ public class Media {
     @SerializedName("media_type")
     public String mediaType;
     public String date;
+    @SerializedName("image_width")
+    public int imageWidth;
+    @SerializedName("image_height")
+    public int imageHeight;
+
+
 }
