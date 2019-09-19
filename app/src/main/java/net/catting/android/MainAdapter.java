@@ -81,8 +81,8 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MyViewHolder> 
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
 //        findViewById(R.id.main_card_title)
+        holder.setIsRecyclable(false);
         if (position==posts.size()){
-
             holder.videoView.setVisibility(View.GONE);
             holder.imageView.setVisibility(View.GONE);
             holder.textViewTitle.setVisibility(View.GONE);
@@ -119,15 +119,13 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MyViewHolder> 
 
     // Return the size of your dataset (invoked by the layout manager)
     @Override
-    public int getItemCount() {
-        return posts.size()+1;
-    }
+    public int getItemCount() { return posts.size()+1; }
 
-    public void addPosts(List<PostBrief> data) {
+    void addPosts(List<PostBrief> data) {
         this.posts.addAll(data);
         notifyDataSetChanged();
     }
-    public void addPosts(List<PostBrief> data,boolean front) {
+    void addPosts(List<PostBrief> data,boolean front) {
         if (front){
             data.addAll(this.posts);
             this.posts=new ArrayList<>(data);
@@ -169,3 +167,5 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MyViewHolder> 
 
 
 }
+
+

@@ -67,9 +67,11 @@ public class MainActivity extends AppCompatActivity {
         layoutManager = new LinearLayoutManager(this);
 
         recyclerView.setLayoutManager(layoutManager);
+
         mAdapter = new MainAdapter();
         recyclerView.setAdapter(mAdapter);
         getPost(count);
+
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
@@ -190,6 +192,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         ).start();
+
 
     }
 
