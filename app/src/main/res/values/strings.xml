@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">catting</string>
     <string name="action_check_update">Check Update</string>
-    <string name="title_activity_update">UpdateActivity</string>
+    <string name="title_activity_update">Update</string>
+    <string name="checking_update">Checking Update...</string>
+    <string name="update_now">Update Now</string>
 </resources>
