@@ -1,6 +1,6 @@
 {
-  "latestVersion": "0.0.1",
-  "latestVersionCode": 1,
+  "latestVersion": "0.0.2",
+  "latestVersionCode": 2,
   "url": "https://raw.githubusercontent.com/lynkas/catting-android/master/app/release/app-release.apk",
   "releaseNotes": [
     "- Enlightened"

@@ -1,7 +1,11 @@
 <resources>
     <string name="app_name">catting</string>
-    <string name="action_check_update">Check Update</string>
-    <string name="title_activity_update">Update</string>
-    <string name="checking_update">Checking Update...</string>
-    <string name="update_now">Update Now</string>
+    <string name="action_check_update">check update</string>
+    <string name="title_activity_update">update</string>
+    <string name="checking_update">checking update&#8230;</string>
+    <string name="update_now">update now</string>
+    <string name="update_available">update available</string>
+    <string name="no_update_available">latest</string>
+    <string name="update_again">try again</string>
+    <string name="downloading_notification">downloading</string>
 </resources>
