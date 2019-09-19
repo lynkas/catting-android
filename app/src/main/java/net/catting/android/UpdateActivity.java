@@ -64,7 +64,9 @@ public class UpdateActivity extends AppCompatActivity {
                         if (isUpdateAvailable){
                             title.setText(R.string.update_available);
                             version.setText(update.getLatestVersion());
+                            version.setVisibility(View.VISIBLE);
                             log.setText(update.getReleaseNotes());
+                            log.setVisibility(View.VISIBLE);
                             button.setVisibility(View.VISIBLE);
                             button.setText(R.string.update_now);
                             button.setOnClickListener((view)->{

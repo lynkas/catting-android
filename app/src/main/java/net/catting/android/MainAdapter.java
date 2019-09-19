@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -29,7 +30,10 @@ import static android.content.ContentValues.TAG;
 
 public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MyViewHolder> {
 
-    private ArrayList<PostBrief> posts;
+    ArrayList<PostBrief> posts;
+    private boolean     lastErr=false;
+    private boolean     loading=false;
+    private iBus bus;
     // Provide a reference to the views for each data item
     // Complex data items may need more than one view per item, and
     // you provide access to all the views for a data item in a view holder
@@ -43,8 +47,9 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MyViewHolder> 
         private TextView    behindView;
         private ImageView   profile;
         private ProgressBar progressBar;
+        private Button      reload;
 
-        public MyViewHolder(View v) {
+        MyViewHolder(View v) {
             super(v);
             this.imageView=v.findViewById(R.id.main_card_image);
             this.videoView=v.findViewById(R.id.main_card_video);
@@ -54,13 +59,48 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MyViewHolder> 
             this.behindView=v.findViewById(R.id.behind);
             this.profile=v.findViewById(R.id.profile);
             this.progressBar=v.findViewById(R.id.main_card_progress);
+            this.reload=v.findViewById(R.id.main_card_reload_button);
         }
 
     }
 
+    void setLoading(){
+        loading=true;
+        notifyDataSetChanged();
+
+    }
+
+    void unsetLoading(){
+        loading=false;
+        notifyDataSetChanged();
+
+    }
+
+    void setLastErr(){
+        this.lastErr=true;
+        notifyDataSetChanged();
+
+    }
+
+    void unsetLastErr(){
+        this.lastErr=false;
+        notifyDataSetChanged();
+
+    }
+
+    boolean getLoadingState(){
+        return loading;
+    }
+
+    boolean getLastErrState(){
+        return lastErr;
+
+    }
+
     // Provide a suitable constructor (depends on the kind of dataset)
-    public MainAdapter() {
-        this.posts = new ArrayList<>();
+    MainAdapter(iBus bus) {
+        posts = new ArrayList<>();
+        this.bus=bus;
 
     }
 
@@ -83,6 +123,8 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MyViewHolder> 
 //        findViewById(R.id.main_card_title)
         holder.setIsRecyclable(false);
         if (position==posts.size()){
+
+
             holder.videoView.setVisibility(View.GONE);
             holder.imageView.setVisibility(View.GONE);
             holder.textViewTitle.setVisibility(View.GONE);
@@ -91,8 +133,12 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MyViewHolder> 
             holder.profile.setVisibility(View.GONE);
             holder.userView.setVisibility(View.GONE);
 
-            holder.progressBar.setVisibility(View.VISIBLE);
-
+            if (lastErr){
+                holder.reload.setVisibility(View.VISIBLE);
+                holder.reload.setOnClickListener((view)->bus.onClickReloadButton(view));
+            }else {
+                holder.progressBar.setVisibility(View.VISIBLE);
+            }
             return;
         }
 
@@ -104,13 +150,13 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MyViewHolder> 
         holder.progressBar.setVisibility(View.GONE);
 
         if (post.media!=null&&post.media.isImage){
-            notNullThenSetImageElsePlaceholder(holder.imageView,R.drawable.loading,post.media.imageUrl);
+            notNullThenSetImageElsePlaceholder(holder.imageView,R.drawable.loading,post.media.imageUrl,1024,0);
         }else {
             holder.imageView.setVisibility(View.GONE);
         }
 
         notNullThenSetImageElsePlaceholder(holder.profile,R.drawable.hairyfooddoe,post.postBy.user.profileUrl);
-        notNullThenSetVisibleAndFillDataElseGone(holder.textViewTitle, Html.fromHtml(post.preview));
+        notNullThenSetVisibleAndFillDataElseGone(holder.textViewTitle, Html.fromHtml(post.preview,Html.FROM_HTML_MODE_LEGACY));
         notNullThenSetVisibleAndFillDataElseGone(holder.userView,post.postBy.user.nickName);
         notNullThenSetVisibleAndFillDataElseGone(holder.frontView,post.postBy.user.front);
         notNullThenSetVisibleAndFillDataElseGone(holder.behindView,post.postBy.user.behind);
@@ -122,18 +168,17 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MyViewHolder> 
     public int getItemCount() { return posts.size()+1; }
 
     void addPosts(List<PostBrief> data) {
-        this.posts.addAll(data);
+        posts.addAll(data);
         notifyDataSetChanged();
     }
     void addPosts(List<PostBrief> data,boolean front) {
         if (front){
-            data.addAll(this.posts);
-            this.posts=new ArrayList<>(data);
+            data.addAll(posts);
+            posts=new ArrayList<>(data);
             notifyDataSetChanged();
         }else {
             addPosts(data);
         }
-
     }
 
     private void notNullThenSetVisibleAndFillDataElseGone(TextView view,String data){
@@ -156,16 +201,32 @@ public class MainAdapter extends RecyclerView.Adapter<MainAdapter.MyViewHolder> 
     private void notNullThenSetImageElsePlaceholder(ImageView view,int resId, String url){
         if(url==null){
             view.setVisibility(View.GONE);
-            Log.d(TAG, "notNullThenSetImageElsePlaceholder: 不显示");
         }else {
             view.setVisibility(View.VISIBLE);
             Picasso.get().load(url).placeholder(resId).into(view);
-            Log.d(TAG, "notNullThenSetImageElsePlaceholder: 显示");
         }
+    }
+    private void notNullThenSetImageElsePlaceholder(ImageView view,int resId, String url,int width,int height){
+        if(url==null){
+            view.setVisibility(View.GONE);
+        }else {
+            view.setVisibility(View.VISIBLE);
+            Picasso.get().load(url).placeholder(resId).resize(width,height).onlyScaleDown().into(view);
+        }
+    }
+
+    void setPosts(ArrayList<PostBrief> posts){
+        this.posts=posts;
+        notifyDataSetChanged();
     }
 
 
 
+
+}
+
+interface iBus{
+    void onClickReloadButton(View v);
 }
 
 

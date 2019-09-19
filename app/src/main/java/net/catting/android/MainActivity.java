@@ -9,14 +9,17 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.GsonBuilder;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import android.os.PersistableBundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -42,9 +45,11 @@ import retrofit2.Retrofit;
 import static android.view.View.GONE;
 
 public class MainActivity extends AppCompatActivity {
-    private static boolean loading=false;
-    private static int postNo=-1;
-    private static int maxPostNo=-1;
+
+    private boolean errLast=false;
+
+    private int postNo=-1;
+    private int maxPostNo=-1;
     private RecyclerView recyclerView;
     private MainAdapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
@@ -55,6 +60,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+
         DisplayMetrics displayMetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
         height = displayMetrics.heightPixels;
@@ -69,10 +76,14 @@ public class MainActivity extends AppCompatActivity {
 
         recyclerView.setLayoutManager(layoutManager);
 
-        mAdapter = new MainAdapter();
+        mAdapter = new MainAdapter(new iBus(){
+            @Override
+            public void onClickReloadButton(View v) {
+                getPost();
+            }
+        });
         recyclerView.setAdapter(mAdapter);
         getPost(count);
-
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
@@ -82,16 +93,11 @@ public class MainActivity extends AppCompatActivity {
                 int offset = recyclerView.computeVerticalScrollOffset();
                 int extent = recyclerView.computeVerticalScrollExtent();
                 int range = recyclerView.computeVerticalScrollRange();
-//                Log.d(TAG, "onScrolled: "+(range));
-//                Log.d(TAG, "onScrolled: "+(extent));
-//                Log.d(TAG, "onScrolled: "+(offset));
-
-                if (range-extent-offset<height/2){
-                    if(!loading)getPost(count);
+                if (range-extent-offset<height/2&&!mAdapter.getLastErrState()){
+                    if(!mAdapter.getLoadingState())getPost(count);
                 }
             }
         });
-
 
         swipeRefreshLayout.setOnRefreshListener(this::getUpdate);
 //        FloatingActionButton fab = findViewById(R.id.fab);
@@ -114,13 +120,20 @@ public class MainActivity extends AppCompatActivity {
             case R.id.action_check_update:
                 Intent intent = new Intent(this,UpdateActivity.class);
                 startActivity(intent);
+
         }
         return true;
     }
 
+    private void getPost(){getPost(count);}
+
     private void getPost(int count){
         new Thread(()->{
-            loading=true;
+            runOnUiThread(()->{
+                mAdapter.setLoading();
+                mAdapter.unsetLastErr();
+            });
+
             Call<List<PostBrief>> call;
             if (postNo==-1){
                 call = Application.api.mainPostsList(0,count);
@@ -130,15 +143,18 @@ public class MainActivity extends AppCompatActivity {
 
             List<PostBrief> posts;
             try {
+
                 posts = call.execute().body();
             }catch (Exception e){
+                runOnUiThread(()-> mAdapter.setLastErr());
+
                 posts = new ArrayList<>();
             }
             for (PostBrief postBrief:posts){
                 if (postNo==-1){
                     postNo=postBrief.id;
                     maxPostNo=postBrief.id;
-                };
+                }
                 if (postBrief.id>=0){
                     postNo=Integer.min(postBrief.id,postNo);
                     Log.d(TAG, "getPost: ID"+postNo);
@@ -147,7 +163,8 @@ public class MainActivity extends AppCompatActivity {
             final List<PostBrief> fPosts=posts;
             runOnUiThread(()->mAdapter.addPosts(fPosts));
             Log.d(TAG, "getPost: Loaded once");
-            loading=false;
+            runOnUiThread(()-> mAdapter.unsetLoading());
+
         }
         ).start();
     }
@@ -155,7 +172,10 @@ public class MainActivity extends AppCompatActivity {
     private void getUpdate(){
         new Thread(()->{
             try {
-                loading=true;
+                runOnUiThread(()->{
+                    mAdapter.setLoading();
+                    mAdapter.unsetLastErr();
+                });
                 Call<List<PostBrief>> call;
                 if (maxPostNo==-1){
                     return;
@@ -165,23 +185,27 @@ public class MainActivity extends AppCompatActivity {
 
                 List<PostBrief> posts;
                 try {
+                    runOnUiThread(()->mAdapter.unsetLastErr());
                     posts = call.execute().body();
                 }catch (Exception e){
                     posts = new ArrayList<>();
+                    runOnUiThread(()->mAdapter.setLastErr());
                 }
                 if (posts.size()==0){
+
                     return;
                 }
                 for (PostBrief postBrief:posts){
                     if (postBrief.id>=0){
                         maxPostNo=Integer.max(postBrief.id,maxPostNo);
-                        Log.d(TAG, "getPost: ID"+maxPostNo);
                     }
                 }
                 final List<PostBrief> fPosts=posts;
-                runOnUiThread(()->mAdapter.addPosts(fPosts,true));
-                Log.d(TAG, "getPost: Loaded once");
-                loading=false;
+                runOnUiThread(()->{
+                    mAdapter.addPosts(fPosts,true);
+                    mAdapter.unsetLoading();
+                });
+
             }finally {
                 swipeRefreshLayout.setRefreshing(false);
 
@@ -192,8 +216,28 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+//    @Override
+//    public void onSaveInstanceState(@NonNull Bundle outState, @NonNull PersistableBundle outPersistentState) {
+//        super.onSaveInstanceState(outState, outPersistentState);
+//
+//        outState.putParcelableArrayList("posts",MainAdapter.posts);
+//    }
 
-//    private void getPost(){
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+
+        savedInstanceState.putParcelableArrayList("posts",mAdapter.posts);
+    }
+
+    @Override
+    public void onRestoreInstanceState(@Nullable Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        mAdapter.setPosts(savedInstanceState.getParcelableArrayList("posts"));
+    }
+
+    //    private void getPost(){
 //        new Thread(()->{
 //
 //                Call<List<PostBrief>> call = Application.api.mainPostsList(postNo,postNo+10);
@@ -215,4 +259,15 @@ public class MainActivity extends AppCompatActivity {
     public static float convertDpToPixel(float dp, Context context) {
         return dp * ((float) context.getResources().getDisplayMetrics().densityDpi / DisplayMetrics.DENSITY_DEFAULT);
     }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event)
+    {
+        if ((keyCode == KeyEvent.KEYCODE_BACK))
+        {
+            finish();
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
 }

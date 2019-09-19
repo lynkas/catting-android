@@ -8,4 +8,5 @@
     <string name="no_update_available">latest</string>
     <string name="update_again">try again</string>
     <string name="downloading_notification">downloading</string>
+    <string name="reload">reload</string>
 </resources>
