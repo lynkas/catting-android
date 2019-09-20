@@ -1,10 +1,12 @@
 package net.catting.android;
 
+import android.Manifest;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 
@@ -16,14 +18,19 @@ import com.github.javiersantos.appupdater.objects.Update;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import android.os.Environment;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import net.catting.android.data.S;
 
@@ -35,7 +42,9 @@ public class UpdateActivity extends AppCompatActivity {
     private TextView version;
     private TextView log;
     private Button button;
+    private String  url;
 
+    private static final int RQ_GRANT_PERMISSION=20;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +71,7 @@ public class UpdateActivity extends AppCompatActivity {
                     public void onSuccess(Update update, Boolean isUpdateAvailable) {
 
                         if (isUpdateAvailable){
+                            url=update.getUrlToDownload().toString();
                             title.setText(R.string.update_available);
                             version.setText(update.getLatestVersion());
                             version.setVisibility(View.VISIBLE);
@@ -69,8 +79,10 @@ public class UpdateActivity extends AppCompatActivity {
                             log.setVisibility(View.VISIBLE);
                             button.setVisibility(View.VISIBLE);
                             button.setText(R.string.update_now);
+
+
                             button.setOnClickListener((view)->{
-                                new Thread(()-> download(update.getUrlToDownload().toString()));
+                                CheckStoragePermission();
                             });
                         }else {
                             title.setText(R.string.no_update_available);
@@ -100,7 +112,7 @@ public class UpdateActivity extends AppCompatActivity {
         //aplication with existing package from there. So for me, alternative solution is Download directory in external storage. If there is better
         //solution, please inform us in comment
         String destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/";
-        String fileName = url.split("/")[url.split("/").length-1];
+        String fileName = "catting-latest.apk";
         destination += fileName;
         final Uri uri = Uri.parse("file://" + destination);
 
@@ -124,19 +136,56 @@ public class UpdateActivity extends AppCompatActivity {
 
         //set BroadcastReceiver to install app when .apk is downloaded
         BroadcastReceiver onComplete = new BroadcastReceiver() {
-            public void onReceive(Context ctxt, Intent intent) {
-                Intent install = new Intent(Intent.ACTION_VIEW);
-                install.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                install.setDataAndType(uri,
+
+            public void onReceive(Context context, Intent intent) {
+                Uri file = manager.getUriForDownloadedFile(downloadId);
+//                Uri file = FileProvider.getUriForFile(context,
+//                        context.getApplicationContext().getPackageName() + ".fileprovider"
+//                        ,new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath()+ "/" + fileName) );
+                Intent install = new Intent(Intent.ACTION_INSTALL_PACKAGE);
+                install.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                install.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                install.setDataAndType(file,
                         manager.getMimeTypeForDownloadedFile(downloadId));
-                startActivity(install);
+                Log.d("a", "onReceive: "+manager.getMimeTypeForDownloadedFile(downloadId));
+                context.startActivity(install);
 
                 unregisterReceiver(this);
-                finish();
+
             }
         };
         //register receiver for when .apk download is compete
         registerReceiver(onComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
     }
 
+    private void CheckStoragePermission() {
+        //Android 6.0檢查是否開啟儲存(WRITE_EXTERNAL_STORAGE)的權限，若否，出現詢問視窗
+//        if (ContextCompat.checkSelfPermission(this,
+//                Manifest.permission.WRITE_EXTERNAL_STORAGE)
+//                != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this,
+//                Manifest.permission.READ_EXTERNAL_STORAGE)
+//                != PackageManager.PERMISSION_GRANTED) {//Can add more as per requirement
+//
+//        }
+        ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE},
+                RQ_GRANT_PERMISSION);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        switch (requestCode){
+            case RQ_GRANT_PERMISSION:
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this,R.string.downloading_please_wait_for_a_while,Toast.LENGTH_LONG).show();
+                    download(url);
+                } else {
+                    Toast.makeText(this,R.string.need_permission_on_storage,Toast.LENGTH_LONG).show();
+                }
+                return;
+        }
+    }
 }

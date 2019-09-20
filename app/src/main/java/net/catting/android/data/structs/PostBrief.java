@@ -46,6 +46,10 @@ public class PostBrief implements Parcelable {
 //    }
 //    Creator<PostBrief>
 
+    public PostBrief() {
+    }
+
+
     @Override
     public int describeContents() {
         return 0;
@@ -65,9 +69,6 @@ public class PostBrief implements Parcelable {
         dest.writeByte(this.hide ? (byte) 1 : (byte) 0);
     }
 
-    public PostBrief() {
-    }
-
     protected PostBrief(Parcel in) {
         this.id = in.readInt();
         this.isPower = in.readByte() != 0;
@@ -81,4 +82,15 @@ public class PostBrief implements Parcelable {
         this.hide = in.readByte() != 0;
     }
 
+    public static final Creator<PostBrief> CREATOR = new Creator<PostBrief>() {
+        @Override
+        public PostBrief createFromParcel(Parcel source) {
+            return new PostBrief(source);
+        }
+
+        @Override
+        public PostBrief[] newArray(int size) {
+            return new PostBrief[size];
+        }
+    };
 }

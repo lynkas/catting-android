@@ -9,4 +9,6 @@
     <string name="update_again">try again</string>
     <string name="downloading_notification">downloading</string>
     <string name="reload">reload</string>
+    <string name="need_permission_on_storage">need permission on storage</string>
+    <string name="downloading_please_wait_for_a_while">downloading, please wait for a while</string>
 </resources>
